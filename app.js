@@ -29,8 +29,17 @@ for (let i = 0; i < lines.length; i++) {
     for (let j = i + 1; j < lines.length; j++) {
       const cols2 = lines[j].split("|");
       if (cols2[0] === "14") {
-        console.log("✅ Fila encontrada:");
-        console.log(lines[j]);
+         // Extraer columnas 7, 9, 10, 11, 12 (índices 6, 8, 9, 10, 11 en el array)
+        const result = {
+          col7: calculateFreezeValue(cols2[7]) || null,
+          col9: calculateFreezeValue(cols2[9]) || null,
+          col10: calculateFreezeValue(cols2[10]) || null,
+          col11: extractAndSubtract(cols2[11]) || null,
+          col12: calculateFreezeValue(cols2[12]) || null,
+        };
+
+        console.log("✅ Resultado:");
+        console.log(result);
         process.exit(0);
       }
     }
@@ -40,3 +49,25 @@ for (let i = 0; i < lines.length; i++) {
 if (!found) {
   console.log("❌ No se encontró ningún bloque con userId:", userId);
 }
+
+function calculateFreezeValue(currentValue){
+    let value = Number(currentValue) - freezeValue;
+    return String(value);
+}
+
+function extractAndSubtract(col11) {
+  const regex = /\(3900\)(.*?)\(96\)/;
+  const match = col11.match(regex);
+
+  if (!match) return col11; // Si no encuentra nada, retorna el original
+
+  // Valor original
+  const original = parseInt(match[1], 10);
+
+  // Resta con freezeValue
+  const newValue = String(original - freezeValue).padStart(10, "0");
+
+  // Reemplazo en la cadena
+  return col11.replace(regex, `(3900)${newValue}(96)`);
+}
+
