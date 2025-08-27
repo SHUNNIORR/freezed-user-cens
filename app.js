@@ -1,45 +1,41 @@
 // buscar.js
 const fs = require("fs");
 
-// Obtener argumentos de la consola
-const [,, userId, freezeValue] = process.argv;
+// Obtener argumentos
+const [,, userIdArg, freezeValueArg] = process.argv;
 
-if (!userId) {
-  console.error("❌ Debes ingresar un userId");
-  console.log("👉 Ejemplo: node buscar.js 4646259");
+if (!userIdArg || !freezeValueArg) {
+  console.error("❌ Debes ingresar userId y freezeValue");
+  console.log("👉 Ejemplo: node buscar.js 27506859 1000");
   process.exit(1);
 }
 
+const freezeValue = Number(freezeValueArg || 0);
 
-// Leer el archivo original
-const fileName = "spool 2.txt";
+// Archivos
+const originalFile = "spool 2.txt";
 const outputFile = "spool 2_modificado.txt";
-const data = fs.readFileSync(fileName, "utf8");
+
+// Decidir si usar el modificado (si ya existe) o el original
+const fileToUse = fs.existsSync(outputFile) ? outputFile : originalFile;
+const data = fs.readFileSync(fileToUse, "utf8");
 
 // Separar en filas
-const lines = data.split("\n");
+let lines = data.split("\n");
 
 let found = false;
 
 for (let i = 0; i < lines.length; i++) {
   const cols = lines[i].split("|");
 
-  // Verificar si la fila empieza con 1 y la columna 4 (índice 4 porque empieza en 0) tiene el userId
-  if (cols[0] === "1" && cols[4] === userId) {
+  if (cols[0] === "1" && cols[4] === userIdArg) {
     found = true;
 
-    // Buscar la siguiente fila que inicie con 14
+    // Buscar la fila 14 del mismo bloque
     for (let j = i + 1; j < lines.length; j++) {
       const cols2 = lines[j].split("|");
+
       if (cols2[0] === "14") {
-         // Extraer columnas 7, 9, 10, 11, 12 (índices 6, 8, 9, 10, 11 en el array)
-        // const result = {
-        //   col7: calculateFreezeValue(cols2[7]) || null,
-        //   col9: calculateFreezeValue(cols2[9]) || null,
-        //   col10: calculateFreezeValue(cols2[10]) || null,
-        //   col11: extractAndSubtract(cols2[11]) || null,
-        //   col12: calculateFreezeValue(cols2[12]) || null,
-        // };
         // Aplicar transformaciones
         cols2[7] = calculateFreezeValue(cols2[7]);   // col7
         cols2[9] = calculateFreezeValue(cols2[9]);   // col9
@@ -47,15 +43,15 @@ for (let i = 0; i < lines.length; i++) {
         cols2[11] = extractAndSubtract(cols2[11]);   // col11
         cols2[12] = calculateFreezeValue(cols2[12]); // col12
 
-         // Reconstruir la línea modificada
+        // Reconstruir la línea modificada
         lines[j] = cols2.join("|");
 
         console.log("✅ Fila 14 modificada:");
         console.log(lines[j]);
 
-        // Guardar copia del archivo
+        // Sobrescribir archivo modificado
         fs.writeFileSync(outputFile, lines.join("\n"), "utf8");
-        console.log(`📂 Archivo generado: ${outputFile}`);
+        console.log(`📂 Archivo actualizado: ${outputFile}`);
 
         process.exit(0);
       }
@@ -64,27 +60,25 @@ for (let i = 0; i < lines.length; i++) {
 }
 
 if (!found) {
-  console.log("❌ No se encontró ningún bloque con userId:", userId);
+  console.log("❌ No se encontró ningún bloque con userId:", userIdArg);
 }
 
-function calculateFreezeValue(currentValue){
-    let value = Number(currentValue) - freezeValue;
-    return String(value);
+function calculateFreezeValue(currentValue) {
+  if (!currentValue) return currentValue;
+  let value = Number(currentValue) - freezeValue;
+  // Si el resultado es negativo → devolver 0
+  if (value < 0) value = 0;
+  return String(value).padStart(currentValue.length, "0");
 }
 
 function extractAndSubtract(col11) {
   const regex = /\(3900\)(.*?)\(96\)/;
   const match = col11.match(regex);
 
-  if (!match) return col11; // Si no encuentra nada, retorna el original
+  if (!match) return col11;
 
-  // Valor original
   const original = parseInt(match[1], 10);
-
-  // Resta con freezeValue
   const newValue = String(original - freezeValue).padStart(10, "0");
 
-  // Reemplazo en la cadena
   return col11.replace(regex, `(3900)${newValue}(96)`);
 }
-
