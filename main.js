@@ -11,9 +11,10 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
+    icon: path.join(__dirname, "assets", process.platform === "win32" ? "icon.ico" : "icon.icns"),
     webPreferences: {
       contextIsolation: false,
-      nodeIntegration: true, // necesario para require() en index.html
+      nodeIntegration: true,
     },
   });
 
