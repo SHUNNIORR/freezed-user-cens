@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Procesar spool</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      color: #004d25;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      background-color: #004d25;
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+      color: #ffffff;
+    }
+
+    header img {
+      width: 80px;
+      display: block;
+      margin: 0 auto 10px auto;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    main {
+      margin-top: 30px;
+      width: 80%;
+      max-width: 500px;
+      background: #f5fff8;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0px 4px 8px rgba(0, 77, 37, 0.2);
+    }
+
+    label {
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0 16px 0;
+      border: 1px solid #004d25;
+      border-radius: 6px;
+    }
+
+    button {
+      background-color: #004d25;
+      color: white;
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background-color: #007a3d;
+    }
+
+    #result {
+      background: #ffffff;
+      border: 1px solid #004d25;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+
+    #download {
+      margin-top: 15px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  
+  <header>
+    <img width="100" src="cens_logo.webp" alt="Logo CENS">
+    <h1>Calculo de congelamiento a usuarios</h1>
+  </header>
+
+  <main>
+    <label>User ID:</label>
+    <input type="text" id="userId">
+
+    <label>Freeze Value:</label>
+    <input type="number" id="freezeValue">
+
+    <div style="text-align: center;">
+      <button id="selectBtn">Seleccionar archivo</button>
+      <button id="processBtn">Procesar</button>
+    </div>
+
+    <h3>Resultado</h3>
+    <pre id="result"></pre>
+    <div id="download"></div>
+  </main>
+
+  <script>
+    const { ipcRenderer, shell } = require("electron");
+    const path = require("path");
+    const os = require("os");
+
+    let selectedFile = null;
+
+    // Seleccionar archivo
+    document.getElementById("selectBtn").addEventListener("click", async () => {
+      selectedFile = await ipcRenderer.invoke("select-file");
+
+      if (selectedFile) {
+        document.getElementById("result").textContent = "✅ Archivo seleccionado:\n" + selectedFile;
+      } else {
+        document.getElementById("result").textContent = "❌ No seleccionaste archivo";
+      }
+    });
+
+    // Procesar archivo
+    document.getElementById("processBtn").addEventListener("click", async () => {
+      const userId = document.getElementById("userId").value;
+      const freezeValue = document.getElementById("freezeValue").value;
+
+      if (!selectedFile) {
+        alert("Primero selecciona un archivo spool.txt");
+        return;
+      }
+      if (!userId || !freezeValue) {
+        alert("Ingresa User ID y Freeze Value");
+        return;
+      }
+
+      const response = await ipcRenderer.invoke("process-file", { userId, freezeValue });
+
+      if (response.success) {
+        document.getElementById("result").textContent = JSON.stringify(response.row14, null, 2);
+
+        document.getElementById("download").innerHTML = `
+          <p>Archivo modificado guardado en:</p>
+          <button id="openFolder">Mostrar ubicación</button>
+        `;
+
+        document.getElementById("openFolder").addEventListener("click", () => {
+          if (os.platform() === "win32") {
+            // Windows → abre explorador y resalta archivo
+            shell.showItemInFolder(response.outputPath);
+          } else {
+            // macOS/Linux → abre Finder/carpeta sin resaltar
+            shell.openPath(path.dirname(response.outputPath));
+          }
+        });
+      } else {
+        document.getElementById("result").textContent = "❌ Error: " + response.error;
+        document.getElementById("download").innerHTML = "";
+      }
+    });
+  </script>
+</body>
+
+</html>
