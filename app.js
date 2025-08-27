@@ -10,8 +10,11 @@ if (!userId) {
   process.exit(1);
 }
 
-// Leer el archivo txt
-const data = fs.readFileSync("spool 2.txt", "utf8");
+
+// Leer el archivo original
+const fileName = "spool 2.txt";
+const outputFile = "spool 2_modificado.txt";
+const data = fs.readFileSync(fileName, "utf8");
 
 // Separar en filas
 const lines = data.split("\n");
@@ -30,16 +33,30 @@ for (let i = 0; i < lines.length; i++) {
       const cols2 = lines[j].split("|");
       if (cols2[0] === "14") {
          // Extraer columnas 7, 9, 10, 11, 12 (índices 6, 8, 9, 10, 11 en el array)
-        const result = {
-          col7: calculateFreezeValue(cols2[7]) || null,
-          col9: calculateFreezeValue(cols2[9]) || null,
-          col10: calculateFreezeValue(cols2[10]) || null,
-          col11: extractAndSubtract(cols2[11]) || null,
-          col12: calculateFreezeValue(cols2[12]) || null,
-        };
+        // const result = {
+        //   col7: calculateFreezeValue(cols2[7]) || null,
+        //   col9: calculateFreezeValue(cols2[9]) || null,
+        //   col10: calculateFreezeValue(cols2[10]) || null,
+        //   col11: extractAndSubtract(cols2[11]) || null,
+        //   col12: calculateFreezeValue(cols2[12]) || null,
+        // };
+        // Aplicar transformaciones
+        cols2[7] = calculateFreezeValue(cols2[7]);   // col7
+        cols2[9] = calculateFreezeValue(cols2[9]);   // col9
+        cols2[10] = calculateFreezeValue(cols2[10]);   // col10
+        cols2[11] = extractAndSubtract(cols2[11]);   // col11
+        cols2[12] = calculateFreezeValue(cols2[12]); // col12
 
-        console.log("✅ Resultado:");
-        console.log(result);
+         // Reconstruir la línea modificada
+        lines[j] = cols2.join("|");
+
+        console.log("✅ Fila 14 modificada:");
+        console.log(lines[j]);
+
+        // Guardar copia del archivo
+        fs.writeFileSync(outputFile, lines.join("\n"), "utf8");
+        console.log(`📂 Archivo generado: ${outputFile}`);
+
         process.exit(0);
       }
     }
