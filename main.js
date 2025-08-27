@@ -9,11 +9,11 @@ let historyFilePath = null;
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 700,
-    height: 500,
+    width: 800,
+    height: 600,
     webPreferences: {
       contextIsolation: false,
-      nodeIntegration: true,
+      nodeIntegration: true, // necesario para require() en index.html
     },
   });
 
@@ -40,7 +40,7 @@ ipcMain.handle("select-file", async () => {
   modifiedFilePath = path.join(resultsDir, "spool_modificado.txt");
   historyFilePath = path.join(resultsDir, "history.json");
 
-  // Primera vez: copiamos el original
+  // Primera vez: copiamos el original como base
   if (!fs.existsSync(modifiedFilePath)) {
     fs.copyFileSync(originalFilePath, modifiedFilePath);
   }
@@ -61,6 +61,8 @@ ipcMain.handle("process-file", async (event, { userId, freezeValue }) => {
 
   try {
     const result = processFile(modifiedFilePath, userId, Number(freezeValue));
+
+    // Sobreescribir el archivo modificado
     fs.writeFileSync(modifiedFilePath, result.updatedFile, "utf8");
 
     // Guardar en historial
@@ -84,3 +86,5 @@ ipcMain.handle("process-file", async (event, { userId, freezeValue }) => {
     return { error: err.message };
   }
 });
+
+app.whenReady().then(createWindow);

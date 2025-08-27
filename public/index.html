@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
-  <title>Procesar spool</title>
+  <title>Congelamiento de usuarios</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -39,8 +38,8 @@
 
     main {
       margin-top: 30px;
-      width: 80%;
-      max-width: 500px;
+      width: 85%;
+      max-width: 700px;
       background: #f5fff8;
       padding: 20px;
       border-radius: 12px;
@@ -91,14 +90,34 @@
       margin-top: 15px;
       text-align: center;
     }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #ffffff;
+    }
+
+    table th {
+      background-color: #004d25;
+      color: white;
+      padding: 8px;
+    }
+
+    table td {
+      border: 1px solid #004d25;
+      padding: 8px;
+    }
+
+    table tr:nth-child(even) {
+      background-color: #f0fff5;
+    }
   </style>
 </head>
-
 <body>
-  
   <header>
-    <img width="100" src="cens_logo.webp" alt="Logo CENS">
-    <h1>Calculo de congelamiento a usuarios</h1>
+    <img src="cens_logo.webp" alt="Logo CENS">
+    <h1>Cálculo de congelamiento a usuarios</h1>
   </header>
 
   <main>
@@ -116,6 +135,19 @@
     <h3>Resultado</h3>
     <pre id="result"></pre>
     <div id="download"></div>
+
+    <h3>Historial de modificaciones</h3>
+    <table id="historyTable">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>User ID</th>
+          <th>Freeze Value</th>
+          <th>Archivo</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </main>
 
   <script>
@@ -125,10 +157,23 @@
 
     let selectedFile = null;
 
-    // Seleccionar archivo
+    function renderHistory(history) {
+      const tbody = document.querySelector("#historyTable tbody");
+      tbody.innerHTML = "";
+      history.forEach(entry => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${entry.date}</td>
+          <td>${entry.userId}</td>
+          <td>${entry.freezeValue}</td>
+          <td>${entry.file}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
     document.getElementById("selectBtn").addEventListener("click", async () => {
       selectedFile = await ipcRenderer.invoke("select-file");
-
       if (selectedFile) {
         document.getElementById("result").textContent = "✅ Archivo seleccionado:\n" + selectedFile;
       } else {
@@ -136,7 +181,6 @@
       }
     });
 
-    // Procesar archivo
     document.getElementById("processBtn").addEventListener("click", async () => {
       const userId = document.getElementById("userId").value;
       const freezeValue = document.getElementById("freezeValue").value;
@@ -162,13 +206,13 @@
 
         document.getElementById("openFolder").addEventListener("click", () => {
           if (os.platform() === "win32") {
-            // Windows → abre explorador y resalta archivo
             shell.showItemInFolder(response.outputPath);
           } else {
-            // macOS/Linux → abre Finder/carpeta sin resaltar
             shell.openPath(path.dirname(response.outputPath));
           }
         });
+
+        renderHistory(response.history);
       } else {
         document.getElementById("result").textContent = "❌ Error: " + response.error;
         document.getElementById("download").innerHTML = "";
@@ -176,5 +220,4 @@
     });
   </script>
 </body>
-
 </html>
