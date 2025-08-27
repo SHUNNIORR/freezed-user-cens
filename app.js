@@ -1,4 +1,4 @@
-// buscar.js
+// modulo para escribir y modificar archivos
 const fs = require("fs");
 
 // Obtener argumentos
@@ -26,6 +26,7 @@ let lines = data.split("\n");
 let found = false;
 
 for (let i = 0; i < lines.length; i++) {
+  // arreglo de columnas
   const cols = lines[i].split("|");
 
   if (cols[0] === "1" && cols[4] === userIdArg) {
