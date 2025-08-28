@@ -15,5 +15,9 @@
   "devDependencies": {
     "electron": "^37.4.0",
     "electron-packager": "^17.1.2"
+  },
+  "dependencies": {
+    "chardet": "^2.1.0",
+    "iconv-lite": "^0.7.0"
   }
 }

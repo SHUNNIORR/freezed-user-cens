@@ -1,7 +1,11 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const iconv = require("iconv-lite");
 const { processFile } = require("./buscar");
+const chardet = require("chardet");
+
+console.log("Encoding detectado:", chardet.detectFileSync("spool 2.txt"));
 
 let originalFilePath = null;
 let modifiedFilePath = null;
@@ -41,9 +45,12 @@ ipcMain.handle("select-file", async () => {
   modifiedFilePath = path.join(resultsDir, "spool_modificado.txt");
   historyFilePath = path.join(resultsDir, "history.json");
 
-  // Primera vez: copiamos el original como base
+  // Primera vez: copiamos el original como base (manteniendo encoding Latin1)
   if (!fs.existsSync(modifiedFilePath)) {
-    fs.copyFileSync(originalFilePath, modifiedFilePath);
+    const rawData = fs.readFileSync(originalFilePath);
+    const decoded = iconv.decode(rawData, "latin1");
+    const buffer = iconv.encode(decoded, "latin1");
+    fs.writeFileSync(modifiedFilePath, buffer, { encoding: "binary" });
   }
 
   // Si no existe historial, lo creamos vacío
@@ -63,10 +70,11 @@ ipcMain.handle("process-file", async (event, { userId, freezeValue }) => {
   try {
     const result = processFile(modifiedFilePath, userId, Number(freezeValue));
 
-    // Sobreescribir el archivo modificado
-    fs.writeFileSync(modifiedFilePath, result.updatedFile, "utf8");
+    // 🔹 Guardar archivo modificado en Latin1 (ANSI)
+    const buffer = iconv.encode(result.updatedFile, "latin1");
+    fs.writeFileSync(modifiedFilePath, buffer, { encoding: "binary" });
 
-    // Guardar en historial
+    // Historial
     let history = [];
     if (fs.existsSync(historyFilePath)) {
       history = JSON.parse(fs.readFileSync(historyFilePath, "utf8"));
