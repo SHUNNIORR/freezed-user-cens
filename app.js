@@ -18,18 +18,20 @@ const outputFile = "spool 2_modificado.txt";
 
 // Decidir si usar el modificado (si ya existe) o el original
 const fileToUse = fs.existsSync(outputFile) ? outputFile : originalFile;
-const data = fs.readFileSync(fileToUse, "utf8");
 
-// Separar en filas
-let lines = data.split("\n");
+// Leer como Buffer y decodificar en Latin1 (ISO-8859-1 / ANSI)
+const rawData = fs.readFileSync(fileToUse);
+let data = rawData.toString("latin1");
+
+// Separar en filas (LF o CRLF)
+let lines = data.split(/\r?\n/);
 
 let found = false;
 
 for (let i = 0; i < lines.length; i++) {
-  // arreglo de columnas
   const cols = lines[i].split("|");
 
-  if (cols[0] === "1" && cols[4] === userIdArg) {
+  if (cols[0] === "1" && cols[11] === userIdArg) {
     found = true;
 
     // Buscar la fila 14 del mismo bloque
@@ -38,11 +40,11 @@ for (let i = 0; i < lines.length; i++) {
 
       if (cols2[0] === "14") {
         // Aplicar transformaciones
-        cols2[7] = calculateFreezeValue(cols2[7]);   // col7
-        cols2[9] = calculateFreezeValue(cols2[9]);   // col9
-        cols2[10] = calculateFreezeValue(cols2[10]);   // col10
-        cols2[11] = extractAndSubtract(cols2[11]);   // col11
-        cols2[12] = calculateFreezeValue(cols2[12]); // col12
+        cols2[7]  = calculateFreezeValue(cols2[7]);   // col7
+        cols2[9]  = calculateFreezeValue(cols2[9]);   // col9
+        cols2[10] = calculateFreezeValue(cols2[10]);  // col10
+        cols2[11] = extractAndSubtract(cols2[11]);    // col11
+        cols2[12] = calculateFreezeValue(cols2[12]);  // col12
 
         // Reconstruir la línea modificada
         lines[j] = cols2.join("|");
@@ -50,10 +52,13 @@ for (let i = 0; i < lines.length; i++) {
         console.log("✅ Fila 14 modificada:");
         console.log(lines[j]);
 
-        // Sobrescribir archivo modificado
-        fs.writeFileSync(outputFile, lines.join("\n"), "utf8");
-        console.log(`📂 Archivo actualizado: ${outputFile}`);
+        // Reconstruir archivo completo
+        const updatedFile = lines.join("\n");
 
+        // Guardar en Latin1 (sin iconv-lite)
+        fs.writeFileSync(outputFile, Buffer.from(updatedFile, "latin1"));
+
+        console.log(`📂 Archivo actualizado: ${outputFile}`);
         process.exit(0);
       }
     }
@@ -64,12 +69,11 @@ if (!found) {
   console.log("❌ No se encontró ningún bloque con userId:", userIdArg);
 }
 
+// Helpers
 function calculateFreezeValue(currentValue) {
   if (!currentValue) return currentValue;
   let value = Number(currentValue) - freezeValue;
-  // Si el resultado es negativo → devolver 0
-  if (value < 0) value = 0;
-  return String(value).padStart(currentValue.length, "0");
+  return String(value);
 }
 
 function extractAndSubtract(col11) {
@@ -79,7 +83,7 @@ function extractAndSubtract(col11) {
   if (!match) return col11;
 
   const original = parseInt(match[1], 10);
-  const newValue = String(original - freezeValue).padStart(10, "0");
+  let newValue = original - freezeValue;
 
-  return col11.replace(regex, `(3900)${newValue}(96)`);
+  return col11.replace(regex, `(3900)${String(newValue).padStart(10, "0")}(96)`);
 }
